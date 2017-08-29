@@ -36,4 +36,15 @@ To test the REST service use e.g. Postman:
      - Body:
             { "greeting": "Hallo!" }
 
+To test the REST service greeting in English:
+
+    GET http://localhost:8080/greetings
+    having set Accept-Language "en"
+
+    and get a response 200 OK back, with 
+     - Headers 
+          content-length: 21
+          content-type: application/json
+     - Body:
+            { "greeting": "Hello!" }
 
