@@ -7,6 +7,8 @@ the Danish, Swedish or Norwegian way to say "Hello".
 
 
 ## Working with the service
+Underneath there are a collection of useful things to work with using the 
+example.
 
 Useful Commands
 ---------------
