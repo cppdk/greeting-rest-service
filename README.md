@@ -1,8 +1,12 @@
 # greeting-rest-service
 
+## Introduction
 A simple rest service that is developed towards being able to greet you in a 
 number of languages. Currently it will only greet you with a "Hallo" which is
-the Danish, Swedish or Norwegian way to say Hello.
+the Danish, Swedish or Norwegian way to say "Hello".
+
+
+## Working with the service
 
 Useful Commands
 ---------------
