@@ -24,7 +24,9 @@ public class ServiceExecutor {
      * @return Grizzly HTTP server.
      */
     public static HttpServer startServer() {
-        final ResourceConfig rc = new ResourceConfig().packages("com.example");
+        final ResourceConfig rc = new ResourceConfig()
+                .packages("com.example")
+                .register(CORSFilter.class);
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(BASE_URI), rc);
     }
 
