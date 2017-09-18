@@ -1,5 +1,6 @@
 package com.example;
 
+import com.example.service.ServiceExecutor;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
