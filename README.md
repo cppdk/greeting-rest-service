@@ -74,3 +74,10 @@ To test the REST service greeting in English:
      - Body:
             { "greeting": "Hello!" }
 
+## Packaging an uber-jar
+
+A fat jar containing all dependencies is created during the package phase of the build. 
+
+To run the uber-jar:
+
+    java -jar target/shaded-greeting-rest-service-1.0-SNAPSHOT.jar
