@@ -46,10 +46,13 @@ To clean an existing checkout and build:
 
     mvn clean package
 
+To clean an existing checkout, build and generate API docs:
+
+    mvn clean package exec:java@api-docs
 
 To run the REST Server standalone:
 
-    mvn exec:java 
+    mvn exec:java@start-server 
 
 To test the REST service use e.g. Postman:
     
@@ -74,9 +77,71 @@ To test the REST service greeting in English:
      - Body:
             { "greeting": "Hello!" }
 
-## Packaging an uber-jar
 
-A fat jar containing all dependencies is created during the package phase of the build. 
+    GET http://localhost:8080/greetings
+    having set Accept-Language "en" and
+    having set Accept "application/hal+json"
+    
+    and get a response 200 back with
+
+    - Headers:
+        access-control-allow-headers: 
+            Content-Type, 
+            Authorization, 
+            If-Match, 
+            If-None-Match, 
+            X-Log-Token, 
+            X-Client-Version, 
+            X-Client-ID, 
+            X-Service-Generation, 
+            X-Requested-With
+
+        access-control-allow-methods: GET, POST, DELETE, PUT, PATCH, OPTIONS, HEAD
+        access-control-allow-origin: *
+        access-control-expose-headers: 
+            Location, 
+            Retry-After,    
+            Content-Encoding, 
+            ETag, 
+            X-Log-Token, 
+            X-RateLimit-Limit, 
+            X-RateLimit-Limit24h, 
+            X-RateLimit-Remaining, 
+            X-RateLimit-Reset
+        content-length: 458
+        content-type: application/hal+json        
+
+    - Body:
+            {
+                "greetings": {
+                    "info": "a list containing current greetings",
+                    "_links": {
+                        "self": {
+                            "href": "/greetings",
+                            "type": "application/hal+json;concept=greeetinglist;v=1",
+                            "title": "List of Greetings"
+                        },
+                        "greetings": [
+                            {
+                                "href": "/greetings/hallo",
+                                "title": "Danish Greeting - Hallo"
+                            },
+                            {
+                                "href": "/greetings/hello",
+                                "title": "English Greeting - Hello"
+                            }
+                        ]
+                    }
+                }
+            }
+
+
+## The uber-jar
+
+An uber-jar is a so-called "fat jar" containing all the transitive dependencies for the service.
+The uber-jar is created during the "package" phase of the build
+It is used to facilitate an easy portable complete image of a service.
+You can run it as a standalone service.  
 
 To run the uber-jar:
 
