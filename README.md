@@ -1,5 +1,8 @@
 # greeting-rest-service
 
+ [![status](https://travis-ci.org/cppdk/greeting-rest-service.svg?branch=feature-13-add-service-build-quality-steps)](https://travis-ci.org/cppdk/greeting-rest-service) 
+ [![coverage](https://codecov.io/gh/cppdk/greeting-rest-service/coverage.svg?branch=feature-13-add-service-build-quality-steps)](https://codecov.io/gh/cppdk/greeting-rest-service)
+
 ## Introduction
 
 A simple rest service that is developed towards being able to greet you in a 
