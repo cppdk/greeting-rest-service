@@ -3,6 +3,7 @@ package com.example.resource.greeting;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.validation.constraints.Pattern;
@@ -16,6 +17,7 @@ import javax.ws.rs.core.Response;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+
 
 /**
  * Greetings Resource handles greetings in Danish and English.
@@ -309,6 +311,8 @@ public class Greeting {
     }
 
     Response handle415Unsupported(String... params) {
+        String msg = Arrays.toString(params);
+        LOGGER.log(Level.INFO, "Attempted to get an nonsupported content type {0}", msg);
         return Response.status(Response.Status.UNSUPPORTED_MEDIA_TYPE).build();
     }
 

@@ -8,7 +8,7 @@ import io.swagger.models.parameters.Parameter;
 /**
  * add or complement existing standard headers for Open API documentation completeness
  */
-public class HeaderDocs {
+public final class HeaderDocs {
 
     private HeaderDocs() {
         //intentionally empty
@@ -121,10 +121,10 @@ public class HeaderDocs {
                 .findFirst()
                 .get();
             if (null != parameter) {
-                if (null == parameter.getDescription() || ("".equals(parameter.getDescription()))) {
+                if (null == parameter.getDescription() || "".equals(parameter.getDescription())) {
                     parameter.setDescription(description);
                 }
-                if (null == parameter.getPattern() && (pattern != null)) {
+                if (null == parameter.getPattern() && pattern != null) {
                     parameter.setPattern(pattern);
                 }
                 if (!parameter.getRequired() && required) {
