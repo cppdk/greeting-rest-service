@@ -27,7 +27,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 @ApplicationPath("/")
 public final class ServiceExecutor {
     // Base URI the Grizzly HTTP server will listen on
-    public static final String BASE_URI = "http://localhost:8080/";
+    public static final String BASE_URI = "http://0.0.0.0:8080/";
     private static final Logger LOGGER = Logger.getLogger(ServiceExecutor.class.getName());
 
     private ServiceExecutor() {
