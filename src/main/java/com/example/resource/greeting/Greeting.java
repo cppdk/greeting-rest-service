@@ -3,6 +3,7 @@ package com.example.resource.greeting;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,12 +13,11 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Response;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-
 
 /**
  * Greetings Resource handles greetings in Danish and English.
@@ -37,10 +37,15 @@ public class Greeting {
     }
 
     /**
-     * Method handling HTTP GET requests.
-     *
+     * A Greeting can be addressed specifically and the consumer can specify what language he/she prefers.
+     * <p>
+     * A LogToken can be part of the request and that will be returned in the response. If no LogToken is present in the request a new one is
+     * extracted and returned to the consumer. The format for the LogToken is a 36 long string that can consist of a-z, A-Z,0-9 and - In other
+     * words: small letters, capital letters and numbers and hyphens
+     * <p>
      * @param acceptLanguage the preferred language
      * @param accept the accepted response format
+     * @param logToken a correlation id for a consumer
      * @return String that will be returned containing "application/hal+json".
      */
     @GET
@@ -49,17 +54,13 @@ public class Greeting {
             + " (the use of application/json is deprecated and will give the old greetings response)", response = String.class)
     public Response getGreetingsList(@HeaderParam("Accept-Language")
             @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
+            @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
             @HeaderParam("Accept") String accept) {
-
         if ("application/json".equalsIgnoreCase(accept)) {
-            String language = preferredLanguage(acceptLanguage);
-            if (language.contains("en")) {
-                return Response.ok("{\"greeting\":\"Hello!\"}").build();
-            }
-            return Response.ok("{\"greeting\":\"Hallo!\"}").build();
+            return handleBackwardsCompliance(acceptLanguage, "{\"greeting\":\"Hallo!\"}");
         }
-        final String greetingList
-                = "{"
+
+        final String responseEntity = "{"
                 + "\"greetings\": {"
                 + "\"info\": \"a list containing current greetings\","
                 + "\"_links\": {"
@@ -79,14 +80,24 @@ public class Greeting {
                 + "        }"
                 + "    }"
                 + "}";
-        return Response.ok(greetingList).build();
+
+        return Response.ok()
+                .entity(responseEntity)
+                .type("application/hal+json;concept=greetings;v=1")
+                .header("X-Log-Token", validateOrCreateToken(logToken))
+                .build();
     }
 
     /**
-     * Method handling HTTP GET requests.
-     *
+     * A Greeting can be addressed specifically and the consumer can specify what language he/she prefers.
+     * <p>
+     * A LogToken can be part of the request and that will be returned in the response. If no LogToken is present in the request a new one is
+     * extracted and returned to the consumer. The format for the LogToken is a 36 long string that can consist of a-z, A-Z,0-9 and - In other
+     * words: small letters, capital letters and numbers and hyphens
+     * <p>
      * @param accept the chosen accepted content-type by consumer
      * @param acceptLanguage client can set the preferred preferredLanguage(s) as in HTTP spec.
+     * @param logToken a correlation id for a consumer
      * @param greeting the greeting wanted by consumer
      * @return String that will be returned containing "application/hal+json".
      */
@@ -97,8 +108,9 @@ public class Greeting {
     public Response getGreeting(
             @HeaderParam("Accept") String accept,
             @HeaderParam("Accept-Language") @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
+            @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
             @PathParam("greeting") @Pattern(regexp = "[a-z]*") String greeting) {
-        return greetingProducers.getOrDefault(accept, this::handle415Unsupported).getResponse(accept, acceptLanguage, greeting);
+        return greetingProducers.getOrDefault(accept, this::handle415Unsupported).getResponse(accept, acceptLanguage, greeting, logToken);
     }
 
     /**
@@ -110,25 +122,68 @@ public class Greeting {
      * The consumer roll back by entering the full content-type in the Accept header in this case {@code application/json;concept=greeting;v=1}
      * or more specific and correct as that is the actual format used. {@code application/hal+json;concept=greeting;v=1}
      */
-    private Response getGreetingG1V1(String accept, String acceptLanguage, String greeting) {
+    private Response getGreetingG1V2(String accept, String acceptLanguage, String greeting, String logToken) {
         String language = preferredLanguage(acceptLanguage);
-        String greet = getGreetingPathParam(greeting);
+        switch (greeting) {
+            case "hallo":
+                return Response
+                        .ok(getDanishFull(language))
+                        .type("application/hal+json;concept=greeting;v=2")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
+                        .build();
+            case "hello":
+                return Response
+                        .status(200)
+                        .entity(getEnglishFull(language))
+                        .type("application/hal+json;concept=greeting;v=2")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
+                        .build();
+            default:
+                return Response
+                        .status(404)
+                        .entity("{"
+                                + "  \"message\": \"Sorry your greeting does not exist yet!\","
+                                + "  \"_links\":{"
+                                + "      \"href\":\"/greetings\","
+                                + "      \"type\":\"application/hal+json\","
+                                + "      \"title\":\"List of exixting greetings\""
+                                + "      }"
+                                + "}")
+                        .type("application/hal+json")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
+                        .build();
+        }
+    }
+
+    /**
+     * Implements version one of the greeting service, where detailed information needs to be handled and returned to consumer, this
+     * construction using interface and explicitly mapping content-types to methods allows to maintain multiple content versions in same service
+     * endpoint and thus be able to ensure that consumers can roll back to this version once the next edition that is no longer compliant is
+     * available.
+     * <p>
+     * The consumer roll back by entering the full content-type in the Accept header in this case {@code application/json;concept=greeting;v=1}
+     * or more specific and correct as that is the actual format used. {@code application/hal+json;concept=greeting;v=1}
+     */
+    private Response getGreetingG1V1(String accept, String acceptLanguage, String greeting, String logToken) {
+        String language = preferredLanguage(acceptLanguage);
+        String greet = greeting;
         switch (greet) {
             case "hallo":
                 return Response
                         .ok(getDanish(language))
                         .type("application/hal+json;concept=greeting;v=1")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
                         .build();
             case "hello":
                 return Response
                         .status(200)
-                        .type("application/hal+json;concept=greeting;v=1")
                         .entity(getEnglish(language))
+                        .type("application/hal+json;concept=greeting;v=1")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
                         .build();
             default:
                 return Response
                         .status(404)
-                        .type(MediaType.APPLICATION_JSON)
                         .entity("{"
                                 + "  \"message\": \"Sorry your greeting does not exist yet!\","
                                 + "  \"_links\":{"
@@ -137,55 +192,10 @@ public class Greeting {
                                 + "      \"title\":\"List of exixting greetings\""
                                 + "      }"
                                 + "}")
+                        .type("application/hal+json")
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
                         .build();
         }
-    }
-
-    /**
-     * Implements version one of the greeting service, where detailed information needs to be handled and returned to consumer, this
-     * construction using interface and explicitly mapping content-types to methods allows to maintain multiple content versions in same service
-     * endpoint and thus be able to ensure that consumers can roll back to this version once the next edition that is no longer compliant is
-     * available.
-     * <p>
-     * The consumer roll back by entering the full content-type in the Accept header in this case {@code application/json;concept=greeting;v=1}
-     * or more specific and correct as that is the actual format used. {@code application/hal+json;concept=greeting;v=1}
-     */
-    private Response getGreetingG1V2(String accept, String acceptLanguage, String greeting) {
-        String language = preferredLanguage(acceptLanguage);
-        String greet = getGreetingPathParam(greeting);
-        switch (greet) {
-            case "hallo":
-                return Response
-                        .ok(getDanishFull(language))
-                        .type("application/hal+json;concept=greeting;v=2")
-                        .build();
-            case "hello":
-                return Response
-                        .status(200)
-                        .type("application/hal+json;concept=greeting;v=2")
-                        .entity(getEnglishFull(language))
-                        .build();
-            default:
-                return Response
-                        .status(404)
-                        .type(MediaType.APPLICATION_JSON)
-                        .entity("{"
-                                + "  \"message\": \"Sorry your greeting does not exist yet!\","
-                                + "  \"_links\":{"
-                                + "      \"href\":\"/greetings\","
-                                + "      \"type\":\"application/hal+json\","
-                                + "      \"title\":\"List of exixting greetings\""
-                                + "      }"
-                                + "}")
-                        .build();
-        }
-    }
-
-    private String getGreetingPathParam(String greeting) {
-        if (greeting == null || greeting.isEmpty()) {
-            return "hallo";
-        }
-        return greeting;
     }
 
     private String preferredLanguage(String preferred) {
@@ -305,15 +315,44 @@ public class Greeting {
         }
     }
 
+    private String validateOrCreateToken(String token) {
+        if (token != null && !"".equals(token)) {
+            return token;
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    /**
+     * @deprecated - use the endpoint above with application/hal+json to get list of greetings back. TERMINATE: Terminate as soon as early
+     * consumers are not using it anymore
+     */
+    private Response handleBackwardsCompliance(String acceptLanguage, String responseEntity) {
+        String language = preferredLanguage(acceptLanguage);
+        if (language.contains("en")) {
+            responseEntity = "{\"greeting\":\"Hello!\"}";
+        }
+        CacheControl cacheControl = new CacheControl();
+        int maxAge = 60;
+        cacheControl.setMaxAge(maxAge);
+        return Response.ok()
+                .entity(responseEntity)
+                .type("application/json")
+                .header("X-Status", "deprecated")
+                .cacheControl(cacheControl)
+                .build();
+    }
+
     interface GreetingProducer {
 
-        Response getResponse(String accept, String language, String greeting);
+        Response getResponse(String accept, String language, String greeting, String logToken);
     }
 
     Response handle415Unsupported(String... params) {
         String msg = Arrays.toString(params);
         LOGGER.log(Level.INFO, "Attempted to get an nonsupported content type {0}", msg);
-        return Response.status(Response.Status.UNSUPPORTED_MEDIA_TYPE).build();
+        return Response
+                .status(Response.Status.UNSUPPORTED_MEDIA_TYPE)
+                .build();
     }
 
 }
