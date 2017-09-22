@@ -270,7 +270,8 @@
                 <version>${pmd.plugin.version}</version>
                 <configuration>
                     <rulesets>
-                        <ruleset>https://raw.githubusercontent.com/cppdk/greeting-rest-service/master/config/pmd.xml</ruleset>
+                        <!-- ruleset>https://raw.githubusercontent.com/cppdk/greeting-rest-service/master/config/pmd.xml</ruleset -->
+                        <ruleset>config/pmd.xml</ruleset>
                     </rulesets>
                     <targetJdk>${jdk.version}</targetJdk>
                     <includes>
@@ -316,7 +317,8 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>${checkstyle.plugin.version}</version>
                 <configuration>
-                    <configLocation>https://raw.githubusercontent.com/cppdk/greeting-rest-service/master/config/checks.xml</configLocation>
+                    <!-- configLocation>https://raw.githubusercontent.com/cppdk/greeting-rest-service/master/config/checks.xml</configLocation -->
+                    <configLocation>config/checks.xml</configLocation>
                 </configuration>
             </plugin>
             <plugin>
