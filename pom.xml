@@ -8,9 +8,9 @@
     <name>greeting-rest-service</name>
     <description>
         The Greeting REST service is a very simple example that serves two purposes.
-        The first is to work in relation with hands-on workshops for development of
-        simple REST services, the other purpose is to develop into being a part of 
-        a turnkey solution, where this in its final state will be an example REST 
+        The first hands-on workshops for development of simple REST services.
+        The second purpose is to be used in relation with a part of a turnkey 
+        template solution, where this in its final state will be an example REST 
         service. 
     </description>
     <url>
