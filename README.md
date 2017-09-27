@@ -2,6 +2,7 @@
 
  [![status](https://travis-ci.org/cppdk/greeting-rest-service.svg?branch=master)](https://travis-ci.org/cppdk/greeting-rest-service) 
  [![coverage](https://codecov.io/gh/cppdk/greeting-rest-service/coverage.svg?branch=master)](https://codecov.io/gh/cppdk/greeting-rest-service)
+ [![Technical Debt](https://sonarcloud.io/api/badges/measure?key=com.example%3Agreeting-rest-service&metric=sqale_debt_ratio)](https://sonarcloud.io/dashboard?id=com.example%3Agreeting-rest-service)
 
 ## Introduction
 
