@@ -1,7 +1,9 @@
 package com.example;
 
 import com.example.service.ServiceExecutor;
+import java.util.Locale;
 import java.util.UUID;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -226,6 +228,7 @@ public class GreetingTest {
         assertEquals("application/hal+json;concept=greeting;v=1", response.getMediaType().toString());
         assertNotNull(response.getHeaders().get("X-Log-Token"));
     }
+
     @Test
     public void testHalloGreetingFromEnglishV1() {
         Response response = target
@@ -310,6 +313,158 @@ public class GreetingTest {
         assertEquals("application/hal+json;concept=greeting;v=2", response.getMediaType().toString());
         assertNotNull(response.getHeaders().get("X-Log-Token"));
     }
+    
+    @Test
+    public void testHalloGreetingFromEmptyDanish() {
+        Response response = target.path("greetings/hallo").request().accept("application/hal+json").acceptLanguage("").get(Response.class);
+        String msg = response.readEntity(String.class);
+        assertEquals("{"
+                + "  \"greeting\": \"Hallo!\","
+                + "  \"language\": \"Dansk\","
+                + "  \"country\": \"Danmark\","
+                + "  \"native\": {"
+                + "    \"language\": \"Dansk\","
+                + "    \"country\": \"Danmark\""
+                + "  },"
+                + "  \"_links\": {"
+                + "    \"href\": \"/greetings/hallo\","
+                + "    \"title\": \"Dansk Hilsen Hallo\""
+                + "  }"
+                + "}", msg);
+        assertEquals("application/hal+json;concept=greeting;v=2", response.getMediaType().toString());
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromNullDanish() {
+        Locale locale = null;
+        Response response = target.path("greetings/hallo").request().accept("application/hal+json").acceptLanguage(locale).get(Response.class);
+        String msg = response.readEntity(String.class);
+        assertEquals("{"
+                + "  \"greeting\": \"Hallo!\","
+                + "  \"language\": \"Dansk\","
+                + "  \"country\": \"Danmark\","
+                + "  \"native\": {"
+                + "    \"language\": \"Dansk\","
+                + "    \"country\": \"Danmark\""
+                + "  },"
+                + "  \"_links\": {"
+                + "    \"href\": \"/greetings/hallo\","
+                + "    \"title\": \"Dansk Hilsen Hallo\""
+                + "  }"
+                + "}", msg);
+        assertEquals("application/hal+json;concept=greeting;v=2", response.getMediaType().toString());
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithLogToken() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("X-Log-Token", "noget-man-kan-kende")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+        assertEquals("noget-man-kan-kende", response.getHeaderString("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithEmptyLogToken() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("X-Log-Token", "")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithNullLogToken() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("X-Log-Token", null)
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithoutLogToken() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("X-Log-Token"));
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithNonChangedETagAndLastModified() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("etag"));
+        String etag = response.getHeaderString("etag");
+        assertNotNull(response.getHeaders().get("last-modified"));
+        String lastModified = response.getHeaderString("last-modified");
+        assertEquals(200, response.getStatus());
+        response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("If-None-Match", etag)
+                .header("If-Modified-Since", lastModified)
+                .get(Response.class);
+        assertEquals(304, response.getStatus());
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithChangedETagAndNonChangedLastModified() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("etag"));
+        String etag = response.getHeaderString("etag");
+        String lastModified = response.getHeaderString("last-modified");
+        assertEquals(200, response.getStatus());
+        response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("If-None-Match", etag)
+                .header("If-Modified-Since", lastModified.substring(0, lastModified.length() - 1))
+                .get(Response.class);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    public void testHalloGreetingFromDanishWithChangedETagAndNotModifiedLastModified() {
+        Response response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .get(Response.class);
+        assertNotNull(response.getHeaders().get("etag"));
+        String etag = response.getHeaderString("etag");
+        assertNotNull(response.getHeaders().get("last-modified"));
+        String lastModified = response.getHeaderString("last-modified");
+        assertEquals(200, response.getStatus());
+        response = target.path("greetings/hallo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .header("If-None-Match", "\"nomatch\"")
+                .header("If-Modified-Since", lastModified)
+                .get(Response.class);
+        assertEquals(200, response.getStatus());
+    }
 
     @Test
     public void testNonExistentGreeting() {
@@ -326,7 +481,7 @@ public class GreetingTest {
         assertEquals("application/hal+json", response.getMediaType().toString());
         assertNotNull(response.getHeaders().get("X-Log-Token"));
     }
-
+    
     @Test
     public void testNonSupportedAccept() {
         Response response = target.path("greetings/hallo").request().accept("application/hal+json;concept=unrealgreeting").acceptLanguage("en").get(Response.class);

@@ -6,7 +6,7 @@ import io.swagger.models.Operation;
 import io.swagger.models.parameters.Parameter;
 
 /**
- * add or complement existing standard headers for Open API documentation completeness
+ * Add or complement existing standard headers for Open API documentation completeness
  */
 public final class HeaderDocs {
 

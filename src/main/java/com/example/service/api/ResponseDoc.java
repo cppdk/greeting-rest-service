@@ -13,7 +13,7 @@ import io.swagger.models.properties.StringProperty;
 
 
 /**
- * adds response documentation to an operation in an Open API manner
+ * Adds response documentation to an operation in an Open API manner
  */
 public final class ResponseDoc {
     

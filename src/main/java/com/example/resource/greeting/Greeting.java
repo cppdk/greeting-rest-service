@@ -1,6 +1,8 @@
 package com.example.resource.greeting;
 
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,7 +16,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -106,11 +112,12 @@ public class Greeting {
     @Produces({"application/hal+json"})
     @ApiOperation(value = "get a greeting back with a preferred language portion included", response = String.class)
     public Response getGreeting(
+            @Context Request request,
             @HeaderParam("Accept") String accept,
             @HeaderParam("Accept-Language") @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
             @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
             @PathParam("greeting") @Pattern(regexp = "[a-z]*") String greeting) {
-        return greetingProducers.getOrDefault(accept, this::handle415Unsupported).getResponse(accept, acceptLanguage, greeting, logToken);
+        return greetingProducers.getOrDefault(accept, this::handle415Unsupported).getResponse(request, accept, acceptLanguage, greeting, logToken);
     }
 
     /**
@@ -122,39 +129,50 @@ public class Greeting {
      * The consumer roll back by entering the full content-type in the Accept header in this case {@code application/json;concept=greeting;v=1}
      * or more specific and correct as that is the actual format used. {@code application/hal+json;concept=greeting;v=1}
      */
-    private Response getGreetingG1V2(String accept, String acceptLanguage, String greeting, String logToken) {
+    private Response getGreetingG1V2(Request request, String accept, String acceptLanguage, String greeting, String logToken) {
         String language = preferredLanguage(acceptLanguage);
+        final String entity;
         switch (greeting) {
             case "hallo":
-                return Response
-                        .ok(getDanishFull(language))
-                        .type("application/hal+json;concept=greeting;v=2")
-                        .header("X-Log-Token", validateOrCreateToken(logToken))
-                        .build();
+                entity = getDanishFull(language);
+                return getResponse(request, logToken, entity);
             case "hello":
-                return Response
-                        .status(200)
-                        .entity(getEnglishFull(language))
-                        .type("application/hal+json;concept=greeting;v=2")
-                        .header("X-Log-Token", validateOrCreateToken(logToken))
-                        .build();
+                entity = getEnglishFull(language);
+                return getResponse(request, logToken, entity);
             default:
+                entity = "{"
+                        + "  \"message\": \"Sorry your greeting does not exist yet!\","
+                        + "  \"_links\":{"
+                        + "      \"href\":\"/greetings\","
+                        + "      \"type\":\"application/hal+json\","
+                        + "      \"title\":\"List of exixting greetings\""
+                        + "      }"
+                        + "}";
                 return Response
                         .status(404)
-                        .entity("{"
-                                + "  \"message\": \"Sorry your greeting does not exist yet!\","
-                                + "  \"_links\":{"
-                                + "      \"href\":\"/greetings\","
-                                + "      \"type\":\"application/hal+json\","
-                                + "      \"title\":\"List of exixting greetings\""
-                                + "      }"
-                                + "}")
+                        .entity(entity)
                         .type("application/hal+json")
                         .header("X-Log-Token", validateOrCreateToken(logToken))
                         .build();
         }
     }
 
+    private Response getResponse(Request request, String logToken, String entity) {
+        Date lastModified = getLastModified();
+        EntityTag eTag = new EntityTag(Integer.toHexString(entity.hashCode()), false);
+        ResponseBuilder builder = request.evaluatePreconditions(lastModified, eTag);
+        if (builder != null) {
+            return builder.build();
+        }
+        return Response
+                .ok(entity)
+                .type("application/hal+json;concept=greeting;v=2")
+                .tag(eTag)
+                .lastModified(lastModified)
+                .header("X-Log-Token", validateOrCreateToken(logToken))
+                .build();
+    }
+
     /**
      * Implements version one of the greeting service, where detailed information needs to be handled and returned to consumer, this
      * construction using interface and explicitly mapping content-types to methods allows to maintain multiple content versions in same service
@@ -164,10 +182,9 @@ public class Greeting {
      * The consumer roll back by entering the full content-type in the Accept header in this case {@code application/json;concept=greeting;v=1}
      * or more specific and correct as that is the actual format used. {@code application/hal+json;concept=greeting;v=1}
      */
-    private Response getGreetingG1V1(String accept, String acceptLanguage, String greeting, String logToken) {
+    private Response getGreetingG1V1(Request request, String accept, String acceptLanguage, String greeting, String logToken) {
         String language = preferredLanguage(acceptLanguage);
-        String greet = greeting;
-        switch (greet) {
+        switch (greeting) {
             case "hallo":
                 return Response
                         .ok(getDanish(language))
@@ -342,12 +359,20 @@ public class Greeting {
                 .build();
     }
 
-    interface GreetingProducer {
-
-        Response getResponse(String accept, String language, String greeting, String logToken);
+    /**
+     * using a non-mockable way to get time in an interval of 10 secs to showcase the last modified header so if you are doing this for real and
+     * want to use time - pls use Instant and Clock
+     */
+    private Date getLastModified() {
+        return Date.from(Instant.ofEpochMilli(1505500000000L));
     }
 
-    Response handle415Unsupported(String... params) {
+    interface GreetingProducer {
+
+        Response getResponse(Request request, String accept, String language, String greeting, String logToken);
+    }
+
+    Response handle415Unsupported(Request request, String... params) {
         String msg = Arrays.toString(params);
         LOGGER.log(Level.INFO, "Attempted to get an nonsupported content type {0}", msg);
         return Response
