@@ -17,6 +17,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -60,7 +61,7 @@ public class Greeting {
     }
 
     /**
-     * Create a new greeting or replace an existing greeting.
+     * Create a new greeting and disallow replace an existing greeting.
      * @param request the actual request
      * @param acceptLanguage the preferred language
      * @param logToken a correlation id for a consumer
@@ -89,7 +90,7 @@ public class Greeting {
     @Produces({"application/hal+json"})
     @Consumes({"application/json"})
     @ApiOperation(value = "create a new greeting")
-    public Response createGreeting(
+    public Response createNewGreeting(
             @Context Request request,
             @HeaderParam("Accept-Language") @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
             @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
@@ -98,6 +99,25 @@ public class Greeting {
         try {
             GreetingRepresentation newGreeting = mapper.readValue(greeting, GreetingRepresentation.class);
             String key = getGreetingRef(newGreeting) + "_" + preferredLanguage(acceptLanguage);
+            GreetingRepresentation stored = REPRESENTATIONS.get(key);
+            if (stored != null) {
+                LOGGER.log(Level.INFO, "Attempted to update an existing Greeting (" + key + ") - in total (" + REPRESENTATIONS.size() + "):\n" + newGreeting.toHAL());
+                String errMsg = "{"
+                        + "  \"message\": \"Sorry that your request for updating greeting could not be met!\","
+                        + "  \"_links\":{"
+                        + "      \"href\":\"/greetings/" + stored.getLinks().getSelf().getHref() + "\","
+                        + "      \"type\":\"application/hal+json\","
+                        + "      \"title\":\"Update Greeting Resource\""
+                        + "      }"
+                        + "}";
+                return Response
+                        .status(Response.Status.CONFLICT)
+                        .entity(errMsg)
+                        .header("Location", stored.getLinks().getSelf().getHref())
+                        .header("X-Log-Token", validateOrCreateToken(logToken))
+                        .build();
+                
+            }
             REPRESENTATIONS.put(key, newGreeting);
             LOGGER.log(Level.INFO, "Parsed new Greeting (" + key + ") - in total (" + REPRESENTATIONS.size() + "):\n" + newGreeting.toHAL());
             return Response
@@ -147,7 +167,7 @@ public class Greeting {
      * @param acceptLanguage the preferred language
      * @param logToken a correlation id for a consumer
      * @param greeting a json formatted input
-     * @return respsonse the status, headers etc. for consumer
+     * @return response the status, headers etc. for consumer
      * 
      * {@code( 
      *   {
@@ -167,6 +187,42 @@ public class Greeting {
      *   }
      * )}
      */
+
+    @PUT
+    @Path("{greeting}")
+    @Produces({"application/hal+json"})
+    @Consumes({"application/json"})
+    @ApiOperation(value = "replaces a greeting")
+    public Response replaceOrCreateGreeting(
+            @Context Request request,
+            @HeaderParam("Accept-Language") @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
+            @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
+            String greeting) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            GreetingRepresentation receivedGreeting = mapper.readValue(greeting, GreetingRepresentation.class);
+            String key = getGreetingRef(receivedGreeting) + "_" + preferredLanguage(acceptLanguage);
+            GreetingRepresentation stored = REPRESENTATIONS.get(key);
+            String msg = "Greeting (" + key + ") - in total (" + REPRESENTATIONS.size() + "):\n" + receivedGreeting.toHAL();
+            Response.Status status;
+            if (stored == null) {
+                LOGGER.log(Level.INFO, "Parsed New ", msg);
+                status = Response.Status.CREATED;
+            } else {
+                LOGGER.log(Level.INFO, "Parsed Replaceable ", msg);
+                status = Response.Status.OK;
+            }
+            REPRESENTATIONS.put(key, receivedGreeting);
+            return Response
+                    .status(status)
+                    .header("Location", receivedGreeting.getLinks().getSelf().getHref())
+                    .header("X-Log-Token", validateOrCreateToken(logToken))
+                    .build();
+        } catch (IOException ex) {
+            LOGGER.log(Level.WARNING, "Sorry, I could not parse the input. which was:\n" + greeting.toString(), ex);
+        }
+        return Response.status(Response.Status.BAD_REQUEST).build();
+    }
 
     /**
      * A Greeting can be addressed specifically and the consumer can specify what language he/she prefers.
@@ -291,7 +347,7 @@ public class Greeting {
                 + "}"
                 + "}";
         return Response
-                .status(404)
+                .status(Response.Status.NOT_FOUND)
                 .entity(entity)
                 .type("application/hal+json")
                 .header("X-Log-Token", validateOrCreateToken(logToken))
