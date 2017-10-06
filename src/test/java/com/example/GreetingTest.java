@@ -544,6 +544,18 @@ public class GreetingTest {
     }
 
     @Test
+    public void testReCreateNonCorrectFrenchGreetingForDanish() {
+        String entity = "{\"nosuchield\":\"Allo!\",\"language\":\"Fransk\",\"country\":\"Frankrig\",\"native\":{\"language\":\"Français\",\"country\":\"France\"},\"_links\":{\"self\":{\"href\":\"greetings/allo\",\"title\":\"Fransk Hilsen Allo Rettet\"}}}";
+        Response response = target
+                .path("greetings/allo")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("da")
+                .put(Entity.json(entity));        
+        assertEquals(400, response.getStatus());
+    }
+
+    @Test
     public void testInitialCreateFrenchGreetingForSwedish() {
         String entity = "{\"greeting\":\"Allo!\",\"language\":\"Franska\",\"country\":\"Frankrike\",\"native\":{\"language\":\"Français\",\"country\":\"France\"},\"_links\":{\"self\":{\"href\":\"greetings/allo\",\"title\":\"Fransk Hilsen Allo Rettet\"}}}";
         Response response = target
