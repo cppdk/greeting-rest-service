@@ -61,26 +61,8 @@ To run the REST Server standalone:
 To test the REST service use e.g. Postman:
     
     GET http://localhost:8080/greetings
-
-    and get a response 200 OK back, with 
-     - Headers 
-          content-length: 21
-          content-type: application/json
-     - Body:
-            { "greeting": "Hallo!" }
-
-To test the REST service greeting in English:
-
-    GET http://localhost:8080/greetings
-    having set Accept-Language "en"
-
-    and get a response 200 OK back, with 
-     - Headers 
-          content-length: 21
-          content-type: application/json
-     - Body:
-            { "greeting": "Hello!" }
-
+    Accept application/json or application/hal+json
+    and get a list of greetings back
 
     GET http://localhost:8080/greetings
     having set Accept-Language "en" and
@@ -111,9 +93,10 @@ To test the REST service greeting in English:
             X-RateLimit-Limit, 
             X-RateLimit-Limit24h, 
             X-RateLimit-Remaining, 
-            X-RateLimit-Reset
-        content-length: 458
-        content-type: application/hal+json        
+            X-RateLimit-Reset,
+            X-Status
+        content-type: application/hal+json
+        ...
 
     - Body:
             {
@@ -122,23 +105,73 @@ To test the REST service greeting in English:
                     "_links": {
                         "self": {
                             "href": "/greetings",
-                            "type": "application/hal+json;concept=greeetinglist;v=1",
+                            "type": "application/hal+json;concept=greetinglist;v=1",
                             "title": "List of Greetings"
                         },
-                        "greetings": [
-                            {
-                                "href": "/greetings/hallo",
-                                "title": "Danish Greeting - Hallo"
-                            },
-                            {
-                                "href": "/greetings/hello",
-                                "title": "English Greeting - Hello"
-                            }
-                        ]
+                        "greetings": [{
+                             "href": "greetings/hallo",
+                             "title": "Dansk Hilsen Hallo"
+                         },{
+                             "href": "greetings/hallo",
+                             "title": "Danish Greeting Hallo"
+                         },{
+                             "href": "greetings/hello",
+                             "title": "English Greeting Hello"
+                         },{
+                             "href": "greetings/hello",
+                             "title": "Engelsk Hilsen Hello"
+                         }]
                     }
                 }
             }
 
+To test the REST service greeting in English:
+
+    GET http://localhost:8080/greetings/hello
+    having set Accept-Language "en"
+
+    and get a response 200 OK back, 
+    with an all English greeting  
+
+    {    
+            "greeting": "Hello!",
+            "language": "English",
+            "country": "England",
+        "    native": {
+                "language": "English",
+                "country": "England"
+            },
+        "    _links": {
+                "self": {
+                    "href": "greetings/hello",
+                "    title": "English Greeting Hello"
+                }
+        }
+    }
+    
+To test the REST service greeting in Danish:
+
+    GET http://localhost:8080/greetings/hello
+    having set Accept-Language "da"
+
+    and get a response 200 OK back, 
+    with an English greeting and part in Danish  
+ 
+    {
+        "greeting": "Hello!",
+        "language": "English",
+        "country": "England",
+        "native": {
+            "language": "Engelsk",
+            "country": "England"
+        },
+        "_links": {
+            "self": {
+                "href": "greetings/hello",
+                "title": "Engelsk Hilsen Hello"
+            }
+        }
+    }
 
 ## The uber-jar
 
