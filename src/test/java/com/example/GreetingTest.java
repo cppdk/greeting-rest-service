@@ -635,20 +635,33 @@ public class GreetingTest {
     }
 
     @Test
-    public void testCreateFrenchGreetingForEnglish() {
+    public void testCreateGreetingAtWrongLocation() {
         String entity = "{\"greeting\":\"Allo!\",\"language\":\"French\",\"country\":\"France\",\"native\":{\"language\":\"Français\",\"country\":\"France\"},\"_links\":{\"self\":{\"href\":\"greetings/allo\",\"title\":\"French Greeting Allo\"}}}";
         Response response = target
-                .path("greetings")
+                .path("greetings/wrong")
                 .request()
                 .accept("application/hal+json")
                 .acceptLanguage("en")
-                .post(Entity.json(entity));        
+                .put(Entity.json(entity));        
+        assertEquals(400, response.getStatus());
+    }
+    @Test
+    public void testReplaceGreetingAtWrongLocation() {
+        String entity = "{\"greeting\":\"Hola!\",\"language\":\"Spanish\",\"country\":\"Spain\",\"native\":{\"language\":\"Spanish\",\"country\":\"Spain\"},\"_links\":{\"self\":{\"href\":\"greetings/hola\",\"title\":\"Spanish Greeting Hola\"}}}";
+        Response response = target
+                .path("greetings/hola")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("en")
+                .put(Entity.json(entity));        
         assertEquals(201, response.getStatus());
-        assertTrue(response.getHeaderString("Location").contains("greetings/allo"));
-        response = target.path("greetings/allo").request().accept("application/hal+json").acceptLanguage("en").get(Response.class);
-        assertEquals(200, response.getStatus());
-        assertEquals(entity, response.readEntity(String.class));
-        assertTrue(entity.contains("French Greeting Allo"));
+        response = target
+                .path("greetings/wrong")
+                .request()
+                .accept("application/hal+json")
+                .acceptLanguage("en")
+                .put(Entity.json(entity));        
+        assertEquals(400, response.getStatus());
     }
 
     @Test
