@@ -17,6 +17,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -29,6 +30,7 @@ import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import com.example.service.patch.JSONPatchContainer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -84,9 +86,9 @@ public class Greeting {
      *           "self": {
      *               "href": "greetings/halloj",
      *               "title": "Dansk Hilsen Halløj"
-     *           }
-     *       }
-     *   }
+     * }
+     * }
+     * }
      * )}
      */
     @POST
@@ -187,9 +189,9 @@ public class Greeting {
      *           "self": {
      *               "href": "greetings/halloj",
      *               "title": "Dansk Hilsen Halløj osv"
-     *           }
-     *       }
-     *   }
+     * }
+     * }
+     * }
      * )}
      */
     @PUT
@@ -272,6 +274,74 @@ public class Greeting {
     }
 
     /**
+     * A Greeting can be updated.
+     * <p>
+     * A LogToken can be part of the request and that will be returned in the response. If no LogToken is present in the request a new one is extracted and returned to the
+     * consumer. The format for the LogToken is a 36 long string that can consist of a-z, A-Z,0-9 and - In other words: small letters, capital letters and numbers and hyphens
+     * <p>
+     * @param request the actual http request
+     * @param accept the chosen accepted content-type by consumer
+     * @param acceptLanguage client can set the preferred preferredLanguage(s) as in HTTP spec.
+     * @param eTag which is the header "If-None-Match" the etag which sets the expected state for the greeting to be updated
+     * @param logToken a correlation id for a consumer
+     * @param greeting the greeting to update.
+     * @param patch the patch that is used for updating the greeting
+     * @return status, headers etc. to consumer
+     */
+    @PATCH
+    @Path("{greeting}")
+    @Consumes({"application/patch+json", "application/json"})
+    @Produces({"application/json"})
+    @ApiOperation(value = "update a greeting")
+    public Response updateGreeting(
+            @Context Request request,
+            @HeaderParam("Accept") String accept,
+            @HeaderParam("Accept-Language") @Pattern(regexp = "^((\\s*[a-z]{2},{0,1}(-{0,1}[a-z]{2}){0,1})+(;q=0\\.[1-9]){0,1},{0,1})+") String acceptLanguage,
+            @HeaderParam("If-None-Match") String eTag,
+            @HeaderParam("X-Log-Token") @Pattern(regexp = "^[a-zA-Z0-9\\-]{36}$") String logToken,
+            @PathParam("greeting") @Pattern(regexp = "[a-z]*") String greeting,
+            String patch) {
+        String key = greeting + "_" + preferredLanguage(acceptLanguage);
+        GreetingRepresentation stored = REPRESENTATIONS.get(key);
+        if (stored == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } else {
+            EntityTag et = getETag(stored.toHAL());
+            ResponseBuilder builder = request.evaluatePreconditions(et);
+            if (builder != null) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JSONPatchContainer patchR = mapper.readValue(patch, JSONPatchContainer.class);
+                    if (patchR.getOperation().equals("replace")) {
+                        try {
+                            if (!patchR.replaceValue(stored)) {
+                                return getPatchResponse(Response.Status.BAD_REQUEST, "{\"error: \"value could not be replaced\"}",
+                                    stored.getLinks().getSelf().getHref(), logToken);                                
+                            }
+                        } catch (NoSuchFieldException | IllegalAccessException | IllegalArgumentException | SecurityException ex) {
+                            return getPatchResponse(Response.Status.BAD_REQUEST, "{\"error: \"value was not replaced\"}",
+                                    stored.getLinks().getSelf().getHref(), logToken);
+                        }
+                        return getPatchResponse(Response.Status.OK, "{\"status: \"value is replaced\"}",
+                                stored.getLinks().getSelf().getHref(), logToken);
+                    } else {
+                        return getPatchResponse(
+                                Response.Status.BAD_REQUEST, "{\"error: \"only operation replace is supported\"}",
+                                stored.getLinks().getSelf().getHref(), logToken);
+                    }
+                } catch (IOException ex) {
+                    Response.status(Response.Status.BAD_REQUEST).build();
+                }
+            } else {
+                return getPatchResponse(
+                        Response.Status.CONFLICT, "{\"  error: \"object has been updated, please get newest version\"}",
+                        stored.getLinks().getSelf().getHref(), logToken);
+            }
+        }
+        return Response.status(Response.Status.BAD_REQUEST).build();
+    }
+
+    /**
      * A Greeting can be addressed specifically and the consumer can specify what language he/she prefers.
      * <p>
      * A LogToken can be part of the request and that will be returned in the response. If no LogToken is present in the request a new one is extracted and returned to the
@@ -344,7 +414,6 @@ public class Greeting {
         return getResponse(request, logToken, greetingEntity.toHATEOAS(), 2);
     }
 
-
     private Response.Status replaceGreeting(final String msg, String key, GreetingRepresentation receivedGreeting) {
         Response.Status status;
         LOGGER.log(Level.INFO, "Parsed Replaceable ", msg);
@@ -364,6 +433,15 @@ public class Greeting {
             status = Response.Status.BAD_REQUEST;
         }
         return status;
+    }
+
+    private Response getPatchResponse(Response.Status status, String entity, String href, String logToken) {
+        return Response
+                .status(status)
+                .entity(entity)
+                .header("Location", href)
+                .header("X-Log-Token", validateOrCreateToken(logToken))
+                .build();
     }
 
     private String preferredLanguage(String preferred) {
@@ -432,20 +510,20 @@ public class Greeting {
 
     private String getGreetingList() {
         final String template = "{"
-                +  "\"greetings\":{"
-                +  "\"info\":\"a list containing current greetings\","
-                +  "\"_links\":{"
-                +   "\"self\":{"
-                +    "\"href\":\"/greetings\","
-                +    "\"type\":\"application/hal+json;concept=greetinglist;v=1\","
-                +    "\"title\":\"List of Greetings\""
-                +   "},"
-                +   "\"greetings\":"
-                +    "["
-                +      getResultingGreetingsList()
-                +    "]"
-                +    "}"
-                +   "}"
+                + "\"greetings\":{"
+                + "\"info\":\"a list containing current greetings\","
+                + "\"_links\":{"
+                + "\"self\":{"
+                + "\"href\":\"/greetings\","
+                + "\"type\":\"application/hal+json;concept=greetinglist;v=1\","
+                + "\"title\":\"List of Greetings\""
+                + "},"
+                + "\"greetings\":"
+                + "["
+                + getResultingGreetingsList()
+                + "]"
+                + "}"
+                + "}"
                 + "}";
         return template;
     }
