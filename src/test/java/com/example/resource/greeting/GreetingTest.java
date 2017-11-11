@@ -5,16 +5,15 @@ import java.util.Locale;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
 import com.example.service.ServiceExecutor;
 import org.glassfish.grizzly.http.server.HttpServer;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

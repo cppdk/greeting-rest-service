@@ -1,11 +1,11 @@
 package com.example.resource.greeting;
 
-import io.openapitools.jackson.dataformat.hal.HALLink;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.openapitools.jackson.dataformat.hal.HALLink;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
