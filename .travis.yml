@@ -1,5 +1,5 @@
 language: java
-script: mvn clean verify exec:java@api-docs
+script: mvn clean verify
 jdk:
   - oraclejdk8
 before_install:
