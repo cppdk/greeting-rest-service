@@ -52,7 +52,7 @@ To clean an existing checkout and build:
 
 To clean an existing checkout, build and generate API docs:
 
-    mvn clean package exec:java@api-docs
+    mvn clean verify
 
 To run the REST Server standalone:
 
