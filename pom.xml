@@ -351,7 +351,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>shaded-${project.artifactId}-${project.version}</finalName>
+                            <finalName>shaded-${project.artifactId}</finalName>
                             <artifactSet>
                                 <excludes>
                                     <exclude>junit:junit</exclude>
@@ -400,6 +400,29 @@
                 </executions>  
             </plugin>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>truezip-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <id>remove-RSA and SF files from META-INF</id>
+                        <goals>
+                            <goal>remove</goal>
+                        </goals>
+                        <phase>post-integration-test</phase>
+                        <configuration>
+                            <fileset>
+                                <directory>${project.build.directory}/assembled-${project.artifactId}-${project.version}-uber.zip/shaded-greeting-rest-service.jar/META-INF</directory>
+                                <includes>
+                                    <include>**/ECLIPSE_.RSA</include>
+                                    <include>**/ECLIPSE_.SF</include>
+                                </includes>
+                            </fileset>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
                 <version>1.0</version>
@@ -412,7 +435,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${project.build.directory}/assembled-${project.artifactId}-${project.version}-jar-with-dependencies.jar</sourceFile>
-                            <destinationFile>${project.build.directory}/shaded-${project.artifactId}-${project.version}.jar</destinationFile>
+                            <destinationFile>${project.build.directory}/shaded-${project.artifactId}.jar</destinationFile>
                         </configuration>
                     </execution>
                     <execution>
@@ -423,7 +446,7 @@
                         </goals>
                         <configuration>
                             <sourceFile>${project.build.directory}/assembled-${project.artifactId}-${project.version}-uber.zip</sourceFile>
-                            <destinationFile>${project.build.directory}/shaded-${project.artifactId}-${project.version}.zip</destinationFile>
+                            <destinationFile>${project.build.directory}/shaded-${project.artifactId}.zip</destinationFile>
                         </configuration>
                     </execution>
                 </executions>

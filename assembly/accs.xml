@@ -19,7 +19,7 @@
     <directory>${project.build.directory}</directory>  
     <outputDirectory/>  
     <includes>  
-     <include>shaded-greeting-rest-service-1.0-SNAPSHOT.jar</include>  
+     <include>shaded-greeting-rest-service*.jar</include>  
     </includes>  
    </fileSet>  
   </fileSets>  
