@@ -9,31 +9,35 @@
 A simple rest service that is developed towards being able to greet you in a 
 number of languages. Currently it will only greet you with a "Hallo" which is
 the Danish, Swedish or Norwegian way to say "Hello". Currently it is perceived
-as a Danish greeting and the only supported greetings are Danish and English.
+as a Danish greeting and the only supported greetings are Danish and English. 
+It is possible to add greetings to the service, which means you can create new 
+greetings, they will however not be stored, as the purpose of this service is 
+to focus on the API. A workshop like edition of the service has been created 
+in [github](https://github.com/allanhojgaardjensen/breakfastcoding)
+
+
 
 ## Worth Noticing
 
-The initial resource "/greetings" is now only supported using a 
+The initial resource "/greetings" is now only supported using either
   
     application/json
 
-content-type, where the more semantical correct "/greetings" is supported for
-a period of time for compliancy by setting the Accept header to 
+as content-type, and
 
     application/hal+json
 
-This is mainly done to show how coexistence thus moving along is possible. 
 Furthermore the resource "/greetings/{greeting}" is now made with the content
 version scheme using "application/hal+json" as producer content-type and 
 showing how to use the actual version of content. 
 
-    application/hal+json;concept=greeting;v=1
+    application/hal+json;concept=greeting;v=4
 
-if a consumer has the need to go back to that version, once a version 2 e.g. 
+if a consumer has the need to go back to an earlier version 3 e.g. 
 
-    application/hal+json;concept=greeting;v=2
+    application/hal+json;concept=greeting;v=3
 
-is created in a near future.
+is used as value for the Accept header.
 
 ## Working with the service
 
@@ -182,4 +186,16 @@ You can run it as a standalone service.
 
 To run the uber-jar:
 
-    java -jar target/shaded-greeting-rest-service-1.0-SNAPSHOT.jar
+    java -jar target/shaded-greeting-rest-service.jar
+
+
+## Reports
+
+ * `Checkstyle` for service implementation
+ * `Findbugs` for service implementation
+ * `PMD` for service implementation
+ * `Jacoco Coverage` for service implementation
+
+ * `OpenApi` specification for service API
+
+ * `Maven` Site (if `mvn site` is used)
