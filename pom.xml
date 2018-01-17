@@ -365,6 +365,16 @@
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>
@@ -398,29 +408,6 @@
                         </configuration>  
                     </execution>      
                 </executions>  
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>truezip-maven-plugin</artifactId>
-                <version>1.2</version>
-                <executions>
-                    <execution>
-                        <id>remove-RSA and SF files from META-INF</id>
-                        <goals>
-                            <goal>remove</goal>
-                        </goals>
-                        <phase>post-integration-test</phase>
-                        <configuration>
-                            <fileset>
-                                <directory>${project.build.directory}/assembled-${project.artifactId}-${project.version}-uber.zip/shaded-greeting-rest-service.jar/META-INF</directory>
-                                <includes>
-                                    <include>**/ECLIPSE_.RSA</include>
-                                    <include>**/ECLIPSE_.SF</include>
-                                </includes>
-                            </fileset>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
